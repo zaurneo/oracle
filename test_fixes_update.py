@@ -256,7 +256,8 @@ def test_agent_compatibility():
         print("✅ All agents imported successfully")
         
         # Test that agents are compiled graphs (expected type)
-        from langgraph.pregel import CompiledGraph
+        # from langgraph.pregel import CompiledGraph
+        from langgraph.graph import StateGraph
         
         agents = [project_owner, data_engineer, model_executer, reporter]
         agent_names = ["project_owner", "data_engineer", "model_executer", "reporter"]

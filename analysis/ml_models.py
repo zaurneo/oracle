@@ -188,8 +188,8 @@ def train_decision_tree_model(symbol: str, test_size: float = 0.2, max_depth: in
         # Remove rows with NaN values
         data_clean = data.dropna()
         
-        if len(data_clean) < 100:
-            return f"❌ Insufficient clean data for {symbol}. Need at least 100 rows, have {len(data_clean)}."
+        if len(data_clean) < 50:
+            return f"❌ Insufficient clean data for {symbol}. Need at least 50 rows, have {len(data_clean)}."
         
         # Prepare features and target
         X = data_clean[feature_columns]
