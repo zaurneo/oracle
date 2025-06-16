@@ -1,15 +1,31 @@
 # Oracle
 
-This project relies on several API keys which are loaded from a `.env` file. A sample `.env` is included in the repository but contains placeholder values only.
+## Installation
 
-## Providing API Keys
-1. Copy the `.env` file and replace each `YOUR_*` placeholder with your real credentials.
-2. Alternatively, set the corresponding environment variables in your shell before running the program.
-
-The `.env` file is listed in `.gitignore`, so any personal keys you place there will not be committed if you change it locally.
-
-Once your keys are in place you can execute the project modules as usual, for example:
+1. Install Python dependencies (LangChain, yfinance, scikit-learn, etc.):
 
 ```bash
-python main.py
+pip install -r requirements.txt
 ```
+
+2. Set required environment variables (either in a `.env` file or your shell):
+
+```bash
+gpt_api_key=YOUR_OPENAI_KEY
+claude_api_key=YOUR_ANTHROPIC_KEY
+# optional search keys
+GOOGLE_SEARCH_API_KEY=...
+GOOGLE_CUSTOM_SEARCH_ENGINE_ID=...
+SERP_API_KEY=...
+SEARCH_ENGINE=ddg
+```
+
+## Usage
+
+Run the main program:
+
+```bash
+python main.py [--full-diagnose]
+```
+
+Use `--full-diagnose` to see a detailed diagnostic run.
