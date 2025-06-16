@@ -1,0 +1,8 @@
+langchain-core
+langchain-openai
+langchain-anthropic
+langgraph
+yfinance
+python-dotenv
+
+scikit-learn
