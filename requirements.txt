@@ -4,5 +4,8 @@ langchain-anthropic
 langgraph
 yfinance
 python-dotenv
-
 scikit-learn
+pandas
+numpy
+matplotlib
+seaborn

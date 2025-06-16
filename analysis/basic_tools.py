@@ -170,6 +170,8 @@ def compare_stocks(symbols: str, metric: str = "overview") -> str:
     except Exception as e:
         return f"Error comparing stocks: {str(e)}"
 
+# Replace the get_technical_indicators function in analysis/basic_tools.py
+
 @tool
 def get_technical_indicators(symbol: str, period: str = "3mo") -> str:
     """Calculate and return traditional technical analysis indicators
@@ -194,24 +196,28 @@ def get_technical_indicators(symbol: str, period: str = "3mo") -> str:
         # Moving averages
         sma_20 = hist['Close'].rolling(20).mean().iloc[-1]
         sma_50 = hist['Close'].rolling(50).mean().iloc[-1] if len(hist) >= 50 else None
-        ema_12 = hist['Close'].ewm(span=12).mean().iloc[-1]
-        ema_26 = hist['Close'].ewm(span=26).mean().iloc[-1]
+        
+        # FIXED: Ensure we're working with Series for ewm calculations
+        close_series = hist['Close']
+        ema_12 = close_series.ewm(span=12).mean().iloc[-1]
+        ema_26 = close_series.ewm(span=26).mean().iloc[-1]
         
         # RSI calculation
-        delta = hist['Close'].diff()
+        delta = close_series.diff()
         gain = delta.where(delta > 0, 0).rolling(14).mean()
         loss = -delta.where(delta < 0, 0).rolling(14).mean()
         rs = gain / loss
         rsi = (100 - (100 / (1 + rs))).iloc[-1]
         
-        # MACD
+        # MACD - FIXED: Use Series consistently
         macd_line = ema_12 - ema_26
-        macd_signal = macd_line.ewm(span=9).mean().iloc[-1]
-        macd_histogram = macd_line.iloc[-1] - macd_signal
+        macd_signal_series = close_series.ewm(span=12).mean() - close_series.ewm(span=26).mean()
+        macd_signal = macd_signal_series.ewm(span=9).mean().iloc[-1]
+        macd_histogram = macd_line - macd_signal
         
         # Bollinger Bands
-        bb_middle = hist['Close'].rolling(20).mean().iloc[-1]
-        bb_std = hist['Close'].rolling(20).std().iloc[-1]
+        bb_middle = close_series.rolling(20).mean().iloc[-1]
+        bb_std = close_series.rolling(20).std().iloc[-1]
         bb_upper = bb_middle + (bb_std * 2)
         bb_lower = bb_middle - (bb_std * 2)
         bb_position = (current_price - bb_lower) / (bb_upper - bb_lower)
@@ -258,7 +264,7 @@ Momentum Indicators:
 - 20-day momentum: {momentum_20d:+.2f}%
 
 MACD:
-- MACD Line: {macd_line.iloc[-1]:.2f}
+- MACD Line: {macd_line:.2f}
 - Signal Line: {macd_signal:.2f}
 - Histogram: {macd_histogram:.2f}
 
@@ -282,7 +288,9 @@ Overall Trend: {'BULLISH' if current_price > sma_20 and rsi < 70 and macd_histog
         return result
         
     except Exception as e:
-        return f"Error analyzing {symbol}: {str(e)}"
+        import traceback
+        error_details = traceback.format_exc()
+        return f"Error analyzing {symbol}: {str(e)}\n\nDetailed error:\n{error_details}"
 
 # Helper functions
 def format_market_cap(market_cap):
