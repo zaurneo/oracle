@@ -1,4 +1,4 @@
-# main2.py - Complete Multi-Agent Conversation Viewer
+# main.py - Clean version with no circular imports
 import os
 import time
 from datetime import datetime
@@ -6,7 +6,9 @@ from typing import Dict, List, Any, Union
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, START, MessagesState
-from tools import ConversationViewer, full_diagnostic
+
+# Import conversation viewer from separate module
+from conversation_viewer import ConversationViewer, full_diagnostic
 
 # Import your agents
 from agents import project_owner, data_engineer, model_executer, reporter

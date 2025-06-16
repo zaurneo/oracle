@@ -1,3 +1,4 @@
+# handoff.py - Clean handoff tool instances
 from tools import create_handoff_tool
 
 # Handoff tools
