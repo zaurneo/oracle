@@ -42,7 +42,7 @@ class TestSuite:
         """Test all critical imports"""
         try:
             import tools
-            import func
+            import analysis
             import prompts
             import agents
             import conversation_viewer
@@ -101,7 +101,7 @@ class TestSuite:
     def test_basic_tools(self) -> bool:
         """Test basic stock analysis tools"""
         try:
-            from func import get_stock_price, get_technical_indicators
+            from analysis import get_stock_price, get_technical_indicators
             
             # Test stock price tool
             result = get_stock_price("AAPL")
@@ -127,7 +127,7 @@ class TestSuite:
     def test_ml_model(self) -> bool:
         """Test the complete ML model workflow"""
         try:
-            from func import (
+            from analysis import (
                 create_technical_features, 
                 train_decision_tree_model, 
                 predict_stock_price,
@@ -170,7 +170,7 @@ class TestSuite:
     def test_model_persistence(self) -> bool:
         """Test model saving and loading"""
         try:
-            from func import (
+            from analysis import (
                 save_trained_model, 
                 load_trained_model, 
                 list_saved_models,
@@ -242,7 +242,7 @@ class TestSuite:
     def test_visualization(self) -> bool:
         """Test visualization creation"""
         try:
-            from func import create_model_visualization
+            from analysis import create_model_visualization
             import os
             
             symbol = "AAPL"
