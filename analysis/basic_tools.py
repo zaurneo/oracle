@@ -29,6 +29,11 @@ def get_stock_price(symbol: str) -> str:
         info = stock.info
         hist = stock.history(period="1d")
         current_price = hist['Close'].iloc[-1] if not hist.empty else "N/A"
+
+        # Store current price in state manager for HTML report
+        if current_price != "N/A":
+            from .shared_state import state_manager
+            state_manager.set_model_data(symbol, 'current_price', current_price)
         
         return f"""
 Stock Information for {symbol}:
@@ -256,7 +261,7 @@ Technical Analysis for {symbol} ({period}):
 Price Information:
 - Current Price: ${current_price:.2f}
 - 20-day SMA: ${sma_20:.2f}
-- 50-day SMA: ${sma_50:.2f if sma_50 else 'N/A (insufficient data)'}
+- 50-day SMA: {f'${sma_50:.2f}' if sma_50 is not None else 'N/A (insufficient data)'}
 
 Momentum Indicators:
 - RSI (14): {rsi:.1f}
@@ -283,7 +288,7 @@ Technical Signals:
 {chr(10).join(f'• {signal}' for signal in signals)}
 
 Overall Trend: {'BULLISH' if current_price > sma_20 and rsi < 70 and macd_histogram > 0 else 'BEARISH' if current_price < sma_20 and macd_histogram < 0 else 'NEUTRAL'}
-        """
+"""
         
         return result
         

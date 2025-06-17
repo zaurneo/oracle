@@ -1,6 +1,6 @@
-# analysis/__init__.py - FIXED VERSION - No stub function fallback
+# analysis/__init__.py - Updated with Simplified HTML Generator
 """
-Stock Analysis Package - FIXED to prevent stub function fallback
+Stock Analysis Package with Simplified HTML Reporting
 """
 
 print("🔄 Loading analysis package...")
@@ -14,9 +14,9 @@ try:
     print("✅ Centralized state manager imported successfully")
 except ImportError as e:
     print(f"❌ Could not import state manager: {e}")
-    raise  # Don't continue with fallback
+    raise
 
-# Import all tools - FIXED: No fallback to stubs
+# Import all tools
 print("🔄 Importing analysis tools...")
 
 try:
@@ -55,31 +55,26 @@ try:
     print("✅ Visualization tools imported")
     
     from .html_generator import (
-        collect_analysis_data,
-        gather_visualization_files,
-        create_html_report,
-        collect_multi_stock_data,
-        gather_multi_stock_visualizations,
-        create_comparative_html_report
+        collect_all_results,
+        create_simple_html_report
     )
-    print("✅ HTML generator tools imported")
+    print("✅ Simplified HTML generator tools imported")
     
-    tools_imported = True
-    print("✅ All analysis modules imported successfully (no fallback to stubs)")
+    print("✅ All analysis modules imported successfully")
     
 except ImportError as e:
     print(f"❌ CRITICAL: Analysis tools import failed: {e}")
     print("❌ Cannot continue without real tools - check module syntax")
     import traceback
     traceback.print_exc()
-    raise  # Don't use stub functions
+    raise
 except Exception as e:
     print(f"❌ CRITICAL: Analysis tools error: {e}")
     import traceback
     traceback.print_exc()
     raise
 
-# Export all tools (REMOVED stub functions completely)
+# Export all tools
 __all__ = [
     # State management
     'ModelStateManager', 'state_manager',
@@ -110,13 +105,9 @@ __all__ = [
     'create_model_visualization',
     'model_summary_report',
     
-    # HTML Generator
-    'collect_analysis_data',
-    'gather_visualization_files',
-    'create_html_report',
-    'collect_multi_stock_data',
-    'gather_multi_stock_visualizations',
-    'create_comparative_html_report'
+    # Simplified HTML Generator with Plotly
+    'collect_all_results',
+    'create_simple_html_report'
 ]
 
-print(f"✅ Analysis package ready with {len(__all__)} tools")
+print(f"✅ Analysis package ready with {len(__all__)} tools (including Plotly HTML generator)")

@@ -231,7 +231,28 @@ def train_decision_tree_model(symbol: str, test_size: float = 0.2, max_depth: in
         test_mae = mean_absolute_error(y_test, y_pred_test)
         train_r2 = r2_score(y_train, y_pred_train)
         test_r2 = r2_score(y_test, y_pred_test)
-        
+
+        # Feature importance
+        feature_importance = pd.DataFrame({
+            'feature': feature_columns,
+            'importance': model.feature_importances_
+        }).sort_values('importance', ascending=False)
+
+        # Prediction variance analysis - MOVED BEFORE model_performance
+        pred_variance = np.var(y_pred_test)
+        actual_variance = np.var(y_test)
+        variance_ratio = pred_variance / actual_variance if actual_variance > 0 else 0
+
+        # Store model performance for HTML report
+        model_performance = {
+            'rmse': float(test_rmse),
+            'mae': float(test_mae),
+            'r2_score': float(test_r2),
+            'train_samples': len(X_train),
+            'test_samples': len(X_test),
+            'variance_ratio': float(variance_ratio)
+        }
+        state_manager.set_model_data(symbol, 'model_performance', model_performance)        
         # Feature importance
         feature_importance = pd.DataFrame({
             'feature': feature_columns,
