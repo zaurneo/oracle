@@ -1,8 +1,9 @@
-# conversation_viewer.py - Separate module to avoid circular imports
+# conversation_viewer.py - Updated with logs folder support
 import os
 import time
 from datetime import datetime
 from typing import Dict, List, Any, Union
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, START, MessagesState
@@ -16,23 +17,29 @@ class ConversationViewer:
             'data_engineer': '\033[92m',     # Green  
             'model_executer': '\033[93m',    # Yellow
             'reporter': '\033[95m',          # Magenta
-            'user': '\033[96m',              # Cyan
+            'html_generator': '\033[96m',    # Cyan - NEW
+            'user': '\033[97m',              # White
             'tool': '\033[91m',              # Red
             'system': '\033[90m',            # Gray
             'reset': '\033[0m'
         }
         self.message_history = []
-        self.seen_ids = set()  # Track message IDs to avoid duplicates
-        self.last_handoff = None  # Track last handoff to avoid duplicates
+        self.seen_ids = set()
+        self.last_handoff = None
+        
+        # Ensure logs directory exists
+        self.logs_dir = Path('logs')
+        self.logs_dir.mkdir(exist_ok=True)
         
     def print_header(self):
         """Print the conversation header"""
-        print("\n" + "="*80)
-        print("🚀 LIVE MULTI-AGENT CONVERSATION")
-        print("="*80)
-        print("👤 USER: Cyan | 🤖 PROJECT_OWNER: Blue | 🔧 DATA_ENGINEER: Green")  
-        print("⚙️  MODEL_EXECUTER: Yellow | 📊 REPORTER: Magenta | 🛠️  TOOLS: Red")
-        print("="*80 + "\n")
+        print("\n" + "="*90)
+        print("🚀 LIVE MULTI-AGENT CONVERSATION WITH HTML REPORTING")
+        print("="*90)
+        print("👤 USER: White | 🤖 PROJECT_OWNER: Blue | 🔧 DATA_ENGINEER: Green")  
+        print("⚙️  MODEL_EXECUTER: Yellow | 📊 REPORTER: Magenta | 🌐 HTML_GENERATOR: Cyan")
+        print("🛠️  TOOLS: Red | 📋 SYSTEM: Gray")
+        print("="*90 + "\n")
     
     def extract_text_content(self, content):
         """Extract readable text from various content formats"""
@@ -72,8 +79,8 @@ class ConversationViewer:
                     # Indent continuation lines
                     print(f"{color}{''.ljust(13)}{line}{self.colors['reset']}")
         
-        # Record in history
-        self.message_history.append((agent_name, content))
+        # Record in history with timestamp
+        self.message_history.append((timestamp, agent_name, content))
     
     def process_message(self, msg, current_agent):
         """Process a single message and display it"""
@@ -106,7 +113,7 @@ class ConversationViewer:
             if tool_calls:
                 for tc in tool_calls:
                     tool_name = tc.get('name', 'unknown')
-                    if 'transfer_to_' not in tool_name:  # Don't show transfer tools here
+                    if 'transfer_to_' not in tool_name:
                         self.format_and_print(name, f"Using tool: {tool_name}", "🔧")
             return
         
@@ -119,22 +126,22 @@ class ConversationViewer:
             if 'transfer_to_' in tool_name and 'Successfully transferred' in content:
                 target = tool_name.replace('transfer_to_', '')
                 handoff_key = f"{current_agent}->{target}"
-                if handoff_key != self.last_handoff:  # Avoid duplicate handoffs
+                if handoff_key != self.last_handoff:
                     self.last_handoff = handoff_key
-                    print(f"\n{self.colors['system']}{'─'*50}")
+                    print(f"\n{self.colors['system']}{'─'*60}")
                     print(f"🔄 Handoff: {current_agent} → {target}")
-                    print(f"{'─'*50}{self.colors['reset']}\n")
+                    print(f"{'─'*60}{self.colors['reset']}\n")
                 return
             
-            # Show other tool results
-            if content and 'get_' in tool_name:
-                # Format tool results nicely
+            # Show tool results (truncated for readability)
+            if content and any(keyword in tool_name for keyword in ['get_', 'create_', 'train_', 'save_']):
                 lines = content.strip().split('\n')
-                result_text = '\n'.join(lines[:10])  # Show first 10 lines
-                if len(lines) > 10:
-                    result_text += f"\n... ({len(lines)-10} more lines)"
+                if len(lines) > 8:
+                    result_text = '\n'.join(lines[:8]) + f"\n... ({len(lines)-8} more lines)"
+                else:
+                    result_text = content.strip()
                     
-                self.format_and_print('tool', f"{tool_name} results:\n{result_text}", "📊")
+                self.format_and_print('tool', f"{tool_name}:\n{result_text}", "📊")
             return
         
         # Handle dictionary messages
@@ -143,7 +150,6 @@ class ConversationViewer:
             content = msg.get('content', '')
             name = msg.get('name', '')
             tool_calls = msg.get('tool_calls', [])
-            tool_call_id = msg.get('tool_call_id', '')
             
             # Human messages
             if role in ['human', 'user']:
@@ -162,23 +168,24 @@ class ConversationViewer:
                     handoff_key = f"{current_agent}->{target}"
                     if handoff_key != self.last_handoff:
                         self.last_handoff = handoff_key
-                        print(f"\n{self.colors['system']}{'─'*50}")
+                        print(f"\n{self.colors['system']}{'─'*60}")
                         print(f"🔄 Handoff: {current_agent} → {target}")
-                        print(f"{'─'*50}{self.colors['reset']}\n")
+                        print(f"{'─'*60}{self.colors['reset']}\n")
                     return
                 
                 # Show other tool results
-                if content and 'get_' in tool_name:
+                if content and any(keyword in tool_name for keyword in ['get_', 'create_', 'train_', 'save_']):
                     lines = content.strip().split('\n')
-                    result_text = '\n'.join(lines[:10])
-                    if len(lines) > 10:
-                        result_text += f"\n... ({len(lines)-10} more lines)"
+                    if len(lines) > 8:
+                        result_text = '\n'.join(lines[:8]) + f"\n... ({len(lines)-8} more lines)"
+                    else:
+                        result_text = content.strip()
                         
-                    self.format_and_print('tool', f"{tool_name} results:\n{result_text}", "📊")
+                    self.format_and_print('tool', f"{tool_name}:\n{result_text}", "📊")
                 return
             
             # Agent messages with name
-            if name in ['project_owner', 'data_engineer', 'model_executer', 'reporter']:
+            if name in ['project_owner', 'data_engineer', 'model_executer', 'reporter', 'html_generator']:
                 # Display content if any
                 if content:
                     text = self.extract_text_content(content)
@@ -212,12 +219,12 @@ class ConversationViewer:
                 for agent_name, data in chunk.items():
                     messages = data.get('messages', [])
                     
-                    # Process ALL messages, not just new ones
+                    # Process ALL messages
                     for msg in messages:
                         self.process_message(msg, agent_name)
                 
                 # Small delay for readability
-                time.sleep(0.05)
+                time.sleep(0.03)
                 
         except KeyboardInterrupt:
             print(f"\n{self.colors['system']}⏹️  Conversation interrupted by user{self.colors['reset']}")
@@ -235,7 +242,7 @@ class ConversationViewer:
         
         # Count messages by agent
         agent_counts = {}
-        for agent, _ in self.message_history:
+        for _, agent, _ in self.message_history:
             agent_counts[agent] = agent_counts.get(agent, 0) + 1
         
         print(f"Total exchanges: {len(self.message_history)}")
@@ -247,26 +254,65 @@ class ConversationViewer:
         print(f"{self.colors['reset']}")
     
     def save_log(self, filename=None):
-        """Save conversation to file"""
+        """Save conversation to file in logs directory"""
         if not filename:
-            filename = f"conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"conversation_{timestamp}.txt"
+        
+        # Ensure filename goes to logs directory
+        log_file = self.logs_dir / filename
         
         if not self.message_history:
             print("No messages to save.")
-            return
+            return str(log_file)
             
         try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write("MULTI-AGENT CONVERSATION LOG\n")
-                f.write("="*50 + "\n\n")
+            with open(log_file, 'w', encoding='utf-8') as f:
+                f.write("MULTI-AGENT STOCK FORECASTING CONVERSATION LOG\n")
+                f.write("=" * 70 + "\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("=" * 70 + "\n\n")
                 
-                for agent, message in self.message_history:
-                    f.write(f"{agent.upper()}:\n{message}\n")
-                    f.write("-"*50 + "\n\n")
+                for timestamp, agent, message in self.message_history:
+                    f.write(f"[{timestamp}] {agent.upper()}:\n")
+                    f.write(f"{message}\n")
+                    f.write("-" * 50 + "\n\n")
+                
+                # Add summary
+                f.write("\nCONVERSATION SUMMARY:\n")
+                f.write("=" * 30 + "\n")
+                
+                agent_counts = {}
+                for _, agent, _ in self.message_history:
+                    agent_counts[agent] = agent_counts.get(agent, 0) + 1
+                
+                f.write(f"Total messages: {len(self.message_history)}\n")
+                for agent, count in sorted(agent_counts.items()):
+                    f.write(f"{agent.upper()}: {count} messages\n")
             
-            print(f"💾 Conversation saved to {filename}")
+            print(f"💾 Conversation log saved to: {log_file}")
+            return str(log_file)
+            
         except Exception as e:
             print(f"❌ Error saving log: {e}")
+            return None
+    
+    def get_conversation_data(self):
+        """Get structured conversation data for HTML reports"""
+        return {
+            'messages': self.message_history,
+            'agent_counts': self._get_agent_counts(),
+            'total_messages': len(self.message_history),
+            'start_time': self.message_history[0][0] if self.message_history else None,
+            'end_time': self.message_history[-1][0] if self.message_history else None
+        }
+    
+    def _get_agent_counts(self):
+        """Get message counts by agent"""
+        agent_counts = {}
+        for _, agent, _ in self.message_history:
+            agent_counts[agent] = agent_counts.get(agent, 0) + 1
+        return agent_counts
 
 
 def full_diagnostic(graph):
@@ -274,7 +320,7 @@ def full_diagnostic(graph):
     print("🔬 FULL DIAGNOSTIC - All Messages")
     print("="*60)
     
-    initial_msg = HumanMessage(content="analyze AAPL stock")
+    initial_msg = HumanMessage(content="analyze AAPL stock with HTML report")
     all_messages = []
     
     for chunk_idx, chunk in enumerate(graph.stream({"messages": [initial_msg]})):
@@ -284,16 +330,14 @@ def full_diagnostic(graph):
             messages = data.get('messages', [])
             print(f"\n🤖 {agent_name}: {len(messages)} messages total")
             
-            # Show ALL messages in this chunk
+            # Show new messages only
             for i, msg in enumerate(messages):
-                # Skip if we've seen this message
                 msg_id = getattr(msg, 'id', None) or (msg.get('id') if isinstance(msg, dict) else None)
-                if msg_id in [m['id'] for m in all_messages if 'id' in m]:
+                if msg_id in [m.get('id') for m in all_messages if 'id' in m]:
                     continue
                     
                 print(f"\n  📧 Message {i+1}:")
                 
-                # Store message info
                 msg_info = {'agent': agent_name, 'index': i}
                 
                 if isinstance(msg, AIMessage):
@@ -302,18 +346,14 @@ def full_diagnostic(graph):
                     print(f"    Content: {repr(msg.content)[:200]}")
                     if msg.tool_calls:
                         print(f"    Tool calls: {[tc.get('name') for tc in msg.tool_calls]}")
-                    msg_info['type'] = 'ai'
-                    msg_info['content'] = msg.content
-                    msg_info['id'] = msg.id
+                    msg_info.update({'type': 'ai', 'content': msg.content, 'id': msg.id})
                     
                 elif isinstance(msg, ToolMessage):
                     print(f"    Type: ToolMessage")
                     print(f"    Tool: {msg.name}")
                     content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
                     print(f"    Content: {repr(content_preview)}")
-                    msg_info['type'] = 'tool'
-                    msg_info['content'] = msg.content
-                    msg_info['id'] = msg.id
+                    msg_info.update({'type': 'tool', 'content': msg.content, 'id': msg.id})
                     
                 elif isinstance(msg, dict):
                     print(f"    Type: Dict")
@@ -323,13 +363,11 @@ def full_diagnostic(graph):
                     if isinstance(content, str):
                         content_preview = content[:100] + "..." if len(content) > 100 else content
                         print(f"    Content: {repr(content_preview)}")
-                    msg_info['type'] = 'dict'
-                    msg_info['content'] = content
-                    msg_info['id'] = msg.get('id')
+                    msg_info.update({'type': 'dict', 'content': content, 'id': msg.get('id')})
                 
                 all_messages.append(msg_info)
         
-        if chunk_idx >= 3:  # Look at first 4 chunks
+        if chunk_idx >= 3:
             break
     
     print(f"\n✅ Total unique messages: {len(all_messages)}")

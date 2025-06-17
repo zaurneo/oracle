@@ -1,5 +1,5 @@
-# agents.py - OPTIMIZED VERSION with integrated handoff tools
-# Eliminates need for separate handoff.py file
+# agents.py - Updated with Clean Multi-Stock HTML Generator
+# All agents use GPT to avoid authentication errors
 
 import os
 from dotenv import load_dotenv
@@ -7,7 +7,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
-# Import all tools from func.py
+# Import all tools from analysis package including new multi-stock tools
 from analysis import (
     # Basic stock analysis tools
     get_stock_price, get_stock_news, compare_stocks, get_technical_indicators,
@@ -21,7 +21,13 @@ from analysis import (
     smart_predict_stock_price, delete_saved_model, model_performance_summary,
     
     # Visualization and reporting tools
-    create_model_visualization, model_summary_report
+    create_model_visualization, model_summary_report,
+    
+    # Single-stock HTML generator tools
+    collect_analysis_data, gather_visualization_files, create_html_report,
+    
+    # UPDATED: Multi-stock HTML generator tools
+    collect_multi_stock_data, gather_multi_stock_visualizations, create_comparative_html_report
 )
 
 # Import handoff utility
@@ -30,23 +36,40 @@ from tools import create_handoff_tool
 # Import prompts
 from prompts import (
     PROJECT_OWNER_PROMPT, DATA_ENGINEER_PROMPT, 
-    MODEL_EXECUTOR_PROMPT, REPORT_INSIGHT_GENERATOR_PROMPT
+    MODEL_EXECUTOR_PROMPT, REPORT_INSIGHT_GENERATOR_PROMPT,
+    HTML_GENERATOR_PROMPT
 )
 
 load_dotenv()
 
-# Initialize models
+# Initialize models - Check API keys
+gpt_api_key = os.environ.get("gpt_api_key", "")
+claude_api_key = os.environ.get("claude_api_key", "")
+
+if not gpt_api_key:
+    print("❌ WARNING: GPT API key not found! Please set 'gpt_api_key' in your .env file")
+    print("Example: gpt_api_key=sk-your-openai-key-here")
+
+# Use GPT for all agents to avoid Claude API authentication error
 model_gpt = ChatOpenAI(
     model="gpt-4o-2024-08-06",
-    api_key=os.environ.get("gpt_api_key", "")
+    api_key=gpt_api_key
 )
 
-model_claude = ChatAnthropic(
-    model="claude-3-5-sonnet-20241022",
-    api_key=os.environ.get("claude_api_key", "")
-)
+# Keep Claude model available but only use if key is valid
+model_claude = None
+if claude_api_key:
+    try:
+        model_claude = ChatAnthropic(
+            model="claude-3-5-sonnet-20241022",
+            api_key=claude_api_key
+        )
+        print("✅ Claude API key configured successfully")
+    except Exception as e:
+        print(f"⚠️ Claude API key issue: {e}")
+        print("📝 Using GPT for all agents")
 
-# Create handoff tools (integrated from handoff.py)
+# Create handoff tools
 transfer_to_project_owner = create_handoff_tool(
     agent_name="project_owner",
     description="Transfer to the project owner agent."
@@ -67,13 +90,19 @@ transfer_to_reporter = create_handoff_tool(
     description="Transfer to the report generation agent."
 )
 
-# Define agents with optimized tool sets
+transfer_to_html_generator = create_handoff_tool(
+    agent_name="html_generator",
+    description="Transfer to the HTML report generator agent."
+)
+
+# Define agents - ALL USING GPT TO AVOID AUTHENTICATION ERRORS
 project_owner = create_react_agent(
     model=model_gpt,
     tools=[
         transfer_to_data_engineer, 
         transfer_to_model_executer,
-        transfer_to_reporter
+        transfer_to_reporter,
+        transfer_to_html_generator
     ],
     prompt=PROJECT_OWNER_PROMPT,
     name="project_owner"
@@ -111,12 +140,12 @@ model_executer = create_react_agent(
         backtest_model,
         quick_model_test,
         
-        # Model persistence and management (ENHANCED)
+        # Model persistence and management
         save_trained_model,
         load_trained_model,
         smart_predict_stock_price,
-        delete_saved_model,           # ✨ NEW
-        model_performance_summary,    # ✨ NEW
+        delete_saved_model,
+        model_performance_summary,
         
         # Handoff tools
         transfer_to_project_owner, 
@@ -133,16 +162,52 @@ reporter = create_react_agent(
         create_model_visualization,
         model_summary_report,
         
-        # Model inventory and performance analysis (ENHANCED)
+        # Model inventory and performance analysis
         list_saved_models,
-        model_performance_summary,    # ✨ NEW
+        model_performance_summary,
         
         # Handoff tools
-        transfer_to_project_owner
+        transfer_to_project_owner,
+        transfer_to_html_generator
     ],
     prompt=REPORT_INSIGHT_GENERATOR_PROMPT,
     name="reporter"
 )
+
+# UPDATED: HTML Generator with Multi-Stock Support
+html_generator = create_react_agent(
+    model=model_gpt,  # Using GPT to avoid authentication errors
+    tools=[
+        # Single-stock HTML generation tools
+        collect_analysis_data,
+        gather_visualization_files,
+        create_html_report,
+        
+        # UPDATED: Multi-stock HTML generation tools
+        collect_multi_stock_data,
+        gather_multi_stock_visualizations,
+        create_comparative_html_report,
+        
+        # Access to model data for comprehensive reporting
+        model_summary_report,
+        list_saved_models,
+        model_performance_summary,
+        
+        # Handoff tools
+        transfer_to_project_owner,
+        transfer_to_reporter
+    ],
+    prompt=HTML_GENERATOR_PROMPT,
+    name="html_generator"
+)
+
+print("✅ All agents initialized successfully using GPT-4!")
+print("🤖 Agent Configuration:")
+print("  - project_owner: GPT-4")
+print("  - data_engineer: GPT-4") 
+print("  - model_executer: GPT-4")
+print("  - reporter: GPT-4")
+print("  - html_generator: GPT-4 (with multi-stock support)")
 
 # Export all agents for easy importing
 __all__ = [
@@ -150,6 +215,7 @@ __all__ = [
     'data_engineer', 
     'model_executer', 
     'reporter',
+    'html_generator',
     'model_gpt',
     'model_claude'
 ]
