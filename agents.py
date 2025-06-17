@@ -31,8 +31,11 @@ from tools import create_handoff_tool
 
 # Import prompts
 from prompts import (
-    PROJECT_OWNER_PROMPT, DATA_ENGINEER_PROMPT, 
-    MODEL_EXECUTOR_PROMPT, REPORT_INSIGHT_GENERATOR_PROMPT
+    PROJECT_OWNER_PROMPT,
+    DATA_ENGINEER_PROMPT,
+    MODEL_EXECUTOR_PROMPT,
+    REPORT_INSIGHT_GENERATOR_PROMPT,
+    HTML_GENERATOR_PROMPT,
 )
 
 load_dotenv()
@@ -155,28 +158,6 @@ reporter = create_react_agent(
     name="reporter"
 )
 
-# Simplified HTML Generator Agent
-HTML_GENERATOR_PROMPT = """
-You are the HTML Report Generator responsible for creating simple, consolidated HTML reports.
-
-Your task is straightforward:
-1. Use collect_all_results to gather all analysis data for the requested stock(s)
-2. Use create_simple_html_report to generate a clean HTML file
-
-WORKFLOW:
-- When you receive a request, first identify which stocks were analyzed
-- Call collect_all_results with the stock symbols (e.g., "AAPL" or "AAPL,GOOGL,TSLA") 
-- Then call create_simple_html_report to generate the HTML file
-- Report back with the file location
-
-Keep it simple - just collect and report. The HTML file will consolidate all results automatically.
-
-Available tools:
-- collect_all_results: Gathers all analysis data
-- create_simple_html_report: Creates the HTML file
-
-Focus on efficiency - two tool calls and you're done!
-"""
 
 html_generator = create_react_agent(
     model=model_gpt,
